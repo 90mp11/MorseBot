@@ -99,3 +99,6 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+twitter_access_keys.py
+MorseBot_twitter.py
+argvtest.py

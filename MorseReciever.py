@@ -6,9 +6,9 @@ from morse_lookup import *
 from twython import Twython
 
 #Morse Code translation lengths
-NEXT_LETTER_LENGTH = 1.5
-NEXT_WORD_LENGTH = 4.5
-DASH_LENGTH = 0.15
+NEXT_LETTER_LENGTH = 1.0
+NEXT_WORD_LENGTH = 3.0
+DASH_LENGTH = 0.2
 
 pygame.mixer.pre_init(44100, -16, 1, 1024)
 pygame.init()
@@ -130,7 +130,7 @@ if (live_flag == "True"):
 #Enable the pins that let us read the morse keyer
 pin = 7
 GPIO.setmode(GPIO.BOARD)
-GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN) # .PUD_UP for regualar morse key, .PUD_DOWN for peg key
 
 #Define a dot and dash in symbols
 DOT = "."

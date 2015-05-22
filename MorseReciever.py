@@ -57,8 +57,11 @@ def initiate_twitter_thread():
 def post_tweet(message):
     print "Tweeting your message now:"
     global api
-    api.update_status(status=message)
-    print "Tweeting Complete!\n"
+    try:
+        api.update_status(status=message)
+        print "Tweeting Complete!\n"
+    except:
+        print "Tweeting Failed...Sorry about that!!\n"
 
 def title_splash():
     print ""
@@ -130,7 +133,7 @@ if (live_flag == "True"):
 #Enable the pins that let us read the morse keyer
 pin = 7
 GPIO.setmode(GPIO.BOARD)
-GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN) # .PUD_UP for regualar morse key, .PUD_DOWN for peg key
+GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_UP) # .PUD_UP for regualar morse key, .PUD_DOWN for peg key
 
 #Define a dot and dash in symbols
 DOT = "."

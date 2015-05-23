@@ -44,31 +44,6 @@ def wait_for_keyup(pin):
     while not GPIO.input(pin):
         time.sleep(0.01)
 
-def initiate_twitter_thread():
-    #Twitter Calls to enable posting to the @getmorsebot account
-    #pickle allows us to keep these keys secret in the "store.pckl" file!
-    global api
-
-    f = open('store.pckl')
-    t_key = pickle.load(f)
-    f.close()
-
-    CONSUMER_KEY = t_key[0]
-    CONSUMER_SECRET = t_key[1]
-    ACCESS_KEY = t_key[2]
-    ACCESS_SECRET = t_key[3]
-
-    api = Twython(CONSUMER_KEY,CONSUMER_SECRET,ACCESS_KEY,ACCESS_SECRET) 
-
-def post_tweet(message):
-    print "Tweeting your message now:"
-    global api
-    try:
-        api.update_status(status=message)
-        print "Tweeting Complete!\n"
-    except:
-        print "Tweeting Failed...Sorry about that!!\n"
-
 def title_splash():
     print ""
     print "_  _ ____ ____ ____ ____ ___  ____ ___      "
@@ -86,8 +61,43 @@ def splash_screen(live_flag):
 
 def find_name():
     global your_name 
-    your_name = raw_input("Please enter your name: ")
-    print "Thank you " + your_name + "."
+    try:
+        your_name = raw_input("Please enter your name: ")
+        print "Thank you " + your_name + "."
+    except KeyboardInterrupt:
+            print "\nOkay 'Steve'...please continue."
+
+def post_tweet(message):
+    print "Tweeting your message now:"
+    global api
+    try:
+        api.update_status(status=message)
+        print "Tweeting Complete!\n"
+    except:
+        print "Tweeting Failed...Sorry about that!!\n"
+
+def lcd_thread():
+    global lcd
+    lcd.clear()
+    lcd.message('Thread is UP')
+
+def initiate_twitter_thread():
+    #Twitter Calls to enable posting to the @getmorsebot account
+    #pickle allows us to keep these keys secret in the "store.pckl" file!
+    global api
+    try:
+        f = open('store.pckl')
+        t_key = pickle.load(f)
+        f.close()
+        
+        CONSUMER_KEY = t_key[0]
+        CONSUMER_SECRET = t_key[1]
+        ACCESS_KEY = t_key[2]
+        ACCESS_SECRET = t_key[3]
+        
+        api = Twython(CONSUMER_KEY,CONSUMER_SECRET,ACCESS_KEY,ACCESS_SECRET)
+    except:
+        print('Twitter setup failed') 
 
 def decoder_thread():
     global key_up_time
@@ -121,8 +131,8 @@ def decoder_thread():
                 sys.stdout.flush()
         except KeyboardInterrupt:
             print "\nClosing Threads"
-            GPIO.cleanup()
-            stated = False
+            GPIO.cleanup(pin)
+#           stated = False
 
 # Raspberry Pi pin configuration:
 lcd_rs        = 27  # Note this might need to be changed to 21 for older revision Pi's.
@@ -169,7 +179,9 @@ your_name = "Steve"
 
 #opening the translator thread and printing the Splash screen out to show that the program is ready
 title_splash()
+
 thread.start_new_thread(decoder_thread, ())
+thread.start_new_thread(lcd_thread, ())
 splash_screen(live_flag)
 
 state_main = True
@@ -187,7 +199,7 @@ while True:
         buffer.append(DASH if key_down_length > DASH_LENGTH else DOT)
     except KeyboardInterrupt:
         print "\nClosing Program"
-        GPIO.cleanup()
+        GPIO.cleanup(pin)
         break
 #    This code prints the dash or dot to the command line for debug
 #    if key_down_length > 0.15:

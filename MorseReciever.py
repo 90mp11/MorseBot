@@ -4,6 +4,12 @@ from array import array
 from pygame.locals import *
 from morse_lookup import *
 from twython import Twython
+import Adafruit_CharLCD as LCD
+
+#Enable the pins that let us read the morse keyer
+pin = 4
+#GPIO.setmode(GPIO.BCM) #If you don't import the Adafruit_CharLCD package, then this needs to be uncommented
+GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_UP) # .PUD_UP for regualar morse key, .PUD_DOWN for peg key
 
 #Morse Code translation lengths
 NEXT_LETTER_LENGTH = 1.0
@@ -115,7 +121,26 @@ def decoder_thread():
                 sys.stdout.flush()
         except KeyboardInterrupt:
             print "\nClosing Threads"
+            GPIO.cleanup()
             stated = False
+
+# Raspberry Pi pin configuration:
+lcd_rs        = 27  # Note this might need to be changed to 21 for older revision Pi's.
+lcd_en        = 22
+lcd_d4        = 25
+lcd_d5        = 24
+lcd_d6        = 23
+lcd_d7        = 18
+lcd_backlight = None
+
+# Define LCD column and row size for 16x2 LCD.
+lcd_columns = 16
+lcd_rows    = 2
+    
+lcd = LCD.Adafruit_CharLCD(lcd_rs, lcd_en, lcd_d4, lcd_d5, lcd_d6, lcd_d7, lcd_columns, lcd_rows, lcd_backlight)
+
+lcd.message('MorseBot is now\n Initialising!!')
+#lcd.message('We are \ngetting there')
 
 api = None
 tone_obj = ToneSound(frequency = 800, volume = .5)
@@ -129,11 +154,6 @@ else:
 #if the flagg to tweet is true, then we open a thread to handle the api 
 if (live_flag == "True"):
     thread.start_new_thread(initiate_twitter_thread, ())
-
-#Enable the pins that let us read the morse keyer
-pin = 7
-GPIO.setmode(GPIO.BOARD)
-GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_UP) # .PUD_UP for regualar morse key, .PUD_DOWN for peg key
 
 #Define a dot and dash in symbols
 DOT = "."
@@ -167,6 +187,7 @@ while True:
         buffer.append(DASH if key_down_length > DASH_LENGTH else DOT)
     except KeyboardInterrupt:
         print "\nClosing Program"
+        GPIO.cleanup()
         break
 #    This code prints the dash or dot to the command line for debug
 #    if key_down_length > 0.15:

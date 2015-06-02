@@ -60,5 +60,5 @@ def try_decode(bit_string):
         sys.stdout.write(symbol)
         sys.stdout.flush()
     else:
-        symbol=" "
+        symbol=""
     return(symbol)

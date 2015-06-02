@@ -11,13 +11,37 @@ pin = 4
 #GPIO.setmode(GPIO.BCM) #If you don't import the Adafruit_CharLCD package, then this needs to be uncommented
 GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_UP) # .PUD_UP for regualar morse key, .PUD_DOWN for peg key
 
+# Raspberry Pi pin configuration:
+lcd_rs        = 27  # Note this might need to be changed to 21 for older revision Pi's.
+lcd_en        = 22
+lcd_d4        = 25
+lcd_d5        = 24
+lcd_d6        = 23
+lcd_d7        = 18
+lcd_backlight = None
+
+# Define LCD column and row size for 16x2 LCD.
+lcd_columns = 16
+lcd_rows    = 2
+
+#Define a dot and dash in symbols
+DOT = "."
+DASH = "-"
+
+#variable definitions
+key_down_time = 0
+key_down_length = 0
+key_up_time = 0
+message_buffer = []
+buffer = []
+output = [""]
+your_name = "Steve"
+last_message = ""
+
 #Morse Code translation lengths
 NEXT_LETTER_LENGTH = 1.0
 NEXT_WORD_LENGTH = 3.0
 DASH_LENGTH = 0.2
-
-pygame.mixer.pre_init(44100, -16, 1, 1024)
-pygame.init()
 
 class ToneSound(pygame.mixer.Sound):
     def __init__(self, frequency, volume):
@@ -48,38 +72,87 @@ def title_splash():
     print ""
     print "_  _ ____ ____ ____ ____ ___  ____ ___      "
     print "|\/| |  | |__/ [__  |___ |__] |  |  |       "
-    print "|  | |__| |  \ ___] |___ |__] |__|  |   v0.2"
+    print "|  | |__| |  \ ___] |___ |__] |__|  |   v0.3"
     print "\n"
+    lcd_print(2, "MorseBot v0.3")
 
 def splash_screen(live_flag):
     if (live_flag == "True"): 
         print "Ready to Tweet!"
+        lcd_print(1, "\nReady to Tweet!")
+        time.sleep(1.5)
     else:
-    	print "Ready to Test..."
+        print "Ready to Test..."
+        lcd_print(2, "\nReady to Tweet!")
+        time.sleep(1.5)
     find_name()
     print "\nPlease now transmit your message:"
+    lcd_print(2, "Please transmit\nyour message:")
+    time.sleep(2)
+    lcd_print(2, "")
 
 def find_name():
     global your_name 
     try:
+        time.sleep(2)
+        lcd_print(2, "Please Enter \nYour Name:")
         your_name = raw_input("Please enter your name: ")
         print "Thank you " + your_name + "."
+        lcd_print(2, "Thank you\n" + your_name)
+        time.sleep(2)
     except KeyboardInterrupt:
-            print "\nOkay 'Steve'...please continue."
+        print "\nOkay 'Steve'...please continue."
+        lcd_print(2, "Okay 'Steve'\n Let's go...")
+        time.sleep(2)
 
 def post_tweet(message):
     print "Tweeting your message now:"
+    lcd_print(2,"Tweeting your\nmessage now:")
     global api
     try:
         api.update_status(status=message)
         print "Tweeting Complete!\n"
+        lcd_print(2,"Tweeting Complete!")
+        time.sleep(1)
     except:
         print "Tweeting Failed...Sorry about that!!\n"
+        lcd_print(2, "Tweeting Failed\nApologies")
+        time.sleep(1)
+
+def lcd_print(flag, message):
+    #Flag definitions: 1=append; 2=clear;
+    global lcd
+    try:
+        if flag is 2:
+            del message_buffer[:]
+        message_buffer.append(message)
+        lcd.clear()
+    except:
+        print("Message not correctly passed to LCD Thread")
 
 def lcd_thread():
     global lcd
-    lcd.clear()
-    lcd.message('Thread is UP')
+    global message_buffer
+    global last_message
+    local_message = ""
+    first_flag = False
+    while True:
+        try:
+            if first_flag == False:
+                lcd.clear()
+                first_flag = True
+            time.sleep(.01)
+            if len(message_buffer) > 0:
+                local_message = "".join(message_buffer)
+                if local_message != last_message:
+                    lcd.message(local_message)
+                    last_message = local_message
+        except KeyboardInterrupt:
+            print "\nClosing Threads"
+            lcd_print(2, "Closing Program")
+            GPIO.cleanup(pin)
+        except:
+            print("Printing to the LCD failed")
 
 def initiate_twitter_thread():
     #Twitter Calls to enable posting to the @getmorsebot account
@@ -113,49 +186,46 @@ def decoder_thread():
                 new_word = True
                 bit_string = "".join(buffer)
                 output.append(try_decode(bit_string))
+                lcd_print(1, output[len(output)-1])
                 if (output[len(output) - 1] == 'EoT'):
                     output.remove('EoT')
                     print "\nThank you " + your_name + ". Your Message Follows:"
+                    lcd_print(2, "Thanks " + your_name)
+                    time.sleep(2)
                     message = your_name + ": " + "".join(output)
                     print message
+                    lcd_print(2, message)
                     if (live_flag == "True"): 
                         post_tweet(message)
-                        title_splash()
-                        splash_screen(live_flag)
+                    first_flag = False
+                    time.sleep(2)
+                    lcd_print(2, "")
+                    title_splash()
+                    splash_screen(live_flag)
                     del output[:]
                 del buffer[:]
             elif new_word and key_up_length >= NEXT_WORD_LENGTH:
                 new_word = False
                 sys.stdout.write(" ")
+                lcd_print(1, " ")
                 output.append(" ")
                 sys.stdout.flush()
         except KeyboardInterrupt:
             print "\nClosing Threads"
+            lcd_print(2, "Closing Program")
             GPIO.cleanup(pin)
-#           stated = False
 
-# Raspberry Pi pin configuration:
-lcd_rs        = 27  # Note this might need to be changed to 21 for older revision Pi's.
-lcd_en        = 22
-lcd_d4        = 25
-lcd_d5        = 24
-lcd_d6        = 23
-lcd_d7        = 18
-lcd_backlight = None
-
-# Define LCD column and row size for 16x2 LCD.
-lcd_columns = 16
-lcd_rows    = 2
+pygame.mixer.pre_init(44100, -16, 1, 1024)
+pygame.init()
     
 lcd = LCD.Adafruit_CharLCD(lcd_rs, lcd_en, lcd_d4, lcd_d5, lcd_d6, lcd_d7, lcd_columns, lcd_rows, lcd_backlight)
 
-lcd.message('MorseBot is now\n Initialising!!')
-#lcd.message('We are \ngetting there')
+thread.start_new_thread(lcd_thread, ())
 
 api = None
 tone_obj = ToneSound(frequency = 800, volume = .5)
 
-#Test the command line arguements to set if we're in practise or live mode
+#Test the command line arguments to set if we're in practise or live mode
 if (len(sys.argv) >= 2):
     live_flag = sys.argv[1]
 else:
@@ -165,26 +235,13 @@ else:
 if (live_flag == "True"):
     thread.start_new_thread(initiate_twitter_thread, ())
 
-#Define a dot and dash in symbols
-DOT = "."
-DASH = "-"
-
-#variable definitions
-key_down_time = 0
-key_down_length = 0
-key_up_time = 0
-buffer = []
-output = [""]
-your_name = "Steve"
-
 #opening the translator thread and printing the Splash screen out to show that the program is ready
 title_splash()
 
 thread.start_new_thread(decoder_thread, ())
-thread.start_new_thread(lcd_thread, ())
 splash_screen(live_flag)
 
-state_main = True
+#state_main = True
 
 #Main program thread loops through translating the keyer's presses into either dit or dah
 while True:
@@ -199,10 +256,6 @@ while True:
         buffer.append(DASH if key_down_length > DASH_LENGTH else DOT)
     except KeyboardInterrupt:
         print "\nClosing Program"
+        lcd_print(2, "Closing Program")
         GPIO.cleanup(pin)
         break
-#    This code prints the dash or dot to the command line for debug
-#    if key_down_length > 0.15:
-#        print DASH
-#    else:
-#        print DOT

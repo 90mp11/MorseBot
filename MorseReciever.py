@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+###Python program to take morse input on pin 7, decode to English and tweet the result...terribly coded by Matt and Emma
+
 import pygame, time, RPi.GPIO as GPIO, thread, sys, pickle
 from array import array
 from pygame.locals import *
@@ -75,6 +77,7 @@ def title_splash():
     print "|  | |__| |  \ ___] |___ |__] |__|  |   v0.3"
     print "\n"
     lcd_print(2, "MorseBot v0.3")
+    time.sleep(1)
 
 def splash_screen(live_flag):
     if (live_flag == "True"): 
@@ -83,39 +86,45 @@ def splash_screen(live_flag):
         time.sleep(1.5)
     else:
         print "Ready to Test..."
-        lcd_print(2, "\nReady to Tweet!")
+        lcd_print(2, "\nReady to Test!")
         time.sleep(1.5)
     find_name()
     print "\nPlease now transmit your message:"
+    lcd_print(0, "")
     lcd_print(2, "Please transmit\nyour message:")
     time.sleep(2)
-    lcd_print(2, "")
+    lcd_print(0, "")
 
 def find_name():
     global your_name 
     try:
         time.sleep(2)
+        lcd_print(0, "")
         lcd_print(2, "Please Enter \nYour Name:")
         your_name = raw_input("Please enter your name: ")
         print "Thank you " + your_name + "."
+        lcd_print(0, "")
         lcd_print(2, "Thank you\n" + your_name)
         time.sleep(2)
     except KeyboardInterrupt:
         print "\nOkay 'Steve'...please continue."
+        lcd_print(0, "")
         lcd_print(2, "Okay 'Steve'\n Let's go...")
-        time.sleep(2)
 
 def post_tweet(message):
     print "Tweeting your message now:"
+    lcd_print(0, "")
     lcd_print(2,"Tweeting your\nmessage now:")
     global api
     try:
         api.update_status(status=message)
         print "Tweeting Complete!\n"
+        lcd_print(0, "")
         lcd_print(2,"Tweeting Complete!")
         time.sleep(1)
     except:
         print "Tweeting Failed...Sorry about that!!\n"
+        lcd_print(0, "")
         lcd_print(2, "Tweeting Failed\nApologies")
         time.sleep(1)
 
@@ -123,10 +132,34 @@ def lcd_print(flag, message):
     #Flag definitions: 1=append; 2=clear;
     global lcd
     try:
+        if flag is 0:
+            del message_buffer[:]
+            lcd.clear()
+        if flag is 1:
+            lcd.clear()
+#            print "***DEBUG*** len(message_buffer): " + len(message_buffer)
+ #           if (len(message_buffer) >= 16):
+ #               print "***DEBUG1***"
+#                print message_buffer
+#                message_list = [message_buffer[i:i+16] for i in range (0, 16,16)]
+#                del message_buffer[:]
+#                message_buffer = message_list[0] + "\n" + message_list[1]
+#                print "***DEBUG2***"
+#                print message_buffer
         if flag is 2:
             del message_buffer[:]
+        if flag is 3:
+            print "Starting the tweeting process"
+#            print "***DEBUG_length*** " + len(message)
+ #           if (len(message) > 16):
+ #               print "***DEBUG3***"
+#                print message
+#                message_list = [message[i:i+16] for i in range (0, 16, 16)]
+#                message = message_list[0] + "\n" + message_list[1]
+#                print "***DEBUG2***"
+#                print message
         message_buffer.append(message)
-        lcd.clear()
+        
     except:
         print("Message not correctly passed to LCD Thread")
 
@@ -149,7 +182,9 @@ def lcd_thread():
                     last_message = local_message
         except KeyboardInterrupt:
             print "\nClosing Threads"
+            lcd_print(0, "")
             lcd_print(2, "Closing Program")
+            time.sleep(1)
             GPIO.cleanup(pin)
         except:
             print("Printing to the LCD failed")
@@ -190,16 +225,19 @@ def decoder_thread():
                 if (output[len(output) - 1] == 'EoT'):
                     output.remove('EoT')
                     print "\nThank you " + your_name + ". Your Message Follows:"
-                    lcd_print(2, "Thanks " + your_name)
-                    time.sleep(2)
-                    message = your_name + ": " + "".join(output)
+                    lcd_print(0, "")
+                    lcd_print(2, "Thanks \n" + your_name)
+                    time.sleep(3)
+                    message = "".join(output)
                     print message
-                    lcd_print(2, message)
+                    lcd_print(0, "")
+                    lcd_print(3, message)
+                    time.sleep(5)
                     if (live_flag == "True"): 
                         post_tweet(message)
+                    time.sleep(5)
                     first_flag = False
-                    time.sleep(2)
-                    lcd_print(2, "")
+                    lcd_print(0, "")
                     title_splash()
                     splash_screen(live_flag)
                     del output[:]
@@ -212,7 +250,9 @@ def decoder_thread():
                 sys.stdout.flush()
         except KeyboardInterrupt:
             print "\nClosing Threads"
+            lcd_print(0, "")
             lcd_print(2, "Closing Program")
+            time.sleep(1)
             GPIO.cleanup(pin)
 
 pygame.mixer.pre_init(44100, -16, 1, 1024)
@@ -256,6 +296,8 @@ while True:
         buffer.append(DASH if key_down_length > DASH_LENGTH else DOT)
     except KeyboardInterrupt:
         print "\nClosing Program"
+        lcd_print(0, "")
         lcd_print(2, "Closing Program")
+        time.sleep(1)
         GPIO.cleanup(pin)
         break
